@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,58 +8,60 @@
     <!-- Add the PapaParse CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pandas-js@0.3.0/lib/pandas.js"></script>
-
 </head>
+
 <body>
 
-<!-- HTML User Interface -->
-<select id="datePicker"></select>
-<button onclick="fetchData()">Search</button>
-<div id="results"></div>
+    <!-- HTML User Interface -->
+    <select id="datePicker"></select>
+    <button onclick="fetchData()">Search</button>
+    <div id="results"></div>
 
-<!-- JavaScript Code -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        Papa.parse('Mosquito_Trap_Data.csv', {
-            download: true,
-            header: true,
-            complete: function(results) {
-                let dates = [...new Set(results.data.map(row => row["Trap Date"]))];
-    
-                dates.sort((a, b) => {
-                    return new Date(a) - new Date(b);
-                });
-    
-                // Populate the dropdown with sorted dates
-                dates.forEach(date => {
-                    let option = document.createElement("option");
+    <!-- JavaScript Code -->
+    <script>
+        let globalDf;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            Papa.parse('Mosquito_Trap_Data.csv', {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    globalDf = new pd.DataFrame(results.data);
+
+                    let dates = [...new Set(globalDf.data["Trap Date"])];
+
+                    dates.sort((a, b) => {
+                        return new Date(a) - new Date(b);
+                    });
+
+                    // Populate the dropdown with sorted dates
+                    dates.forEach(date => {
+                        let option = document.createElement("option");
                         option.value = date;
                         option.textContent = date;
-                         datePicker.appendChild(option);
-                });
-            }
+                        datePicker.appendChild(option);
+                    });
+                }
+            });
         });
-    });
 
-    function fetchData() {
-        let selectedDate = document.getElementById("datePicker").value;
-        Papa.parse('Mosquito_Trap_Data.csv', {
-            download: true,
-            header: true,
-            complete: function(results) {
-                let filteredData = results.data.filter(row => row["Trap Date"] === selectedDate);
-                displayData(filteredData);
-            }
-        });
-    }
+        function fetchData() {
+            let selectedDate = document.getElementById("datePicker").value;
+            const filteredDf = globalDf.query(`"Trap Date" == '${selectedDate}'`);
+            
+            // Calculate the mean of the "Count" column for the selected date
+            const meanCount = filteredDf['Count'].mean();
 
-    function displayData(data) {
-        let resultsDiv = document.getElementById("results");
-        resultsDiv.innerHTML = "";
-        data.forEach(row => {
-            resultsDiv.innerHTML += `<p>${row["Genus"]} ${row["Specific Epithet"]} from ${row["Trap Region"]} with count: ${row["Count"]}</p>`;
-        });
-    }
-</script>
+            displayData(meanCount);
+        }
+
+        function displayData(meanCount) {
+            let resultsDiv = document.getElementById("results");
+            resultsDiv.innerHTML = `<p>Average mosquito count for the selected date: ${meanCount}</p>`;
+        }
+
+    </script>
 </body>
+
 </html>
