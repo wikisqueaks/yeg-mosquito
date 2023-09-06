@@ -5,9 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mosquito Data App</title>
+    <script src="https://d3js.org/d3-array.v2.min.js"></script>
+    <script src="https://www.unpkg.com/@tidyjs/tidy/dist/umd/tidy.min.js"></script>
+    <script>
+        const { tidy, mutate, arrange, desc, filter, distinct, summarize, mean } = Tidy;
+        // ...
+    </script>  
     <!-- Add the PapaParse CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pandas-js@0.3.0/lib/pandas.js"></script>
+    <!-- Add the tidy.js CDN -->
+    
 </head>
 
 <body>
@@ -19,24 +26,21 @@
 
     <!-- JavaScript Code -->
     <script>
-        let globalDf;
-
         document.addEventListener('DOMContentLoaded', function() {
             Papa.parse('Mosquito_Trap_Data.csv', {
                 download: true,
                 header: true,
-                dynamicTyping: true,
+                dynamicTyping: true, // added this to convert data types dynamically
                 complete: function(results) {
-                    globalDf = new pd.DataFrame(results.data);
+                    let data = results.data;
+                    const uniqueDates = tidy(data,
+                        distinct("Trap Date")
+                    ).map(row => row["Trap Date"]);
 
-                    let dates = [...new Set(globalDf.data["Trap Date"])];
-
-                    dates.sort((a, b) => {
-                        return new Date(a) - new Date(b);
-                    });
+                    uniqueDates.sort((a, b) => new Date(a) - new Date(b));
 
                     // Populate the dropdown with sorted dates
-                    dates.forEach(date => {
+                    uniqueDates.forEach(date => {
                         let option = document.createElement("option");
                         option.value = date;
                         option.textContent = date;
@@ -48,19 +52,32 @@
 
         function fetchData() {
             let selectedDate = document.getElementById("datePicker").value;
-            const filteredDf = globalDf.query(`"Trap Date" == '${selectedDate}'`);
-            
-            // Calculate the mean of the "Count" column for the selected date
-            const meanCount = filteredDf['Count'].mean();
-
-            displayData(meanCount);
+            Papa.parse('Mosquito_Trap_Data.csv', {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    let data = results.data;
+                    const filteredData = tidy(data,
+                        filter(d => d["Trap Date"] === selectedDate)
+                    );
+                    displayData(filteredData);
+                }
+            });
         }
 
-        function displayData(meanCount) {
+        function displayData(data) {
             let resultsDiv = document.getElementById("results");
-            resultsDiv.innerHTML = `<p>Average mosquito count for the selected date: ${meanCount}</p>`;
-        }
+            resultsDiv.innerHTML = "";
 
+            // Display the count average for the selected date
+            const meanCount = tidy(data, summarize({ avgCount: mean("Count") }))[0].avgCount;
+            resultsDiv.innerHTML += `<p>Average count for the selected date: ${meanCount}</p>`;
+
+            data.forEach(row => {
+                resultsDiv.innerHTML += `<p>${row["Genus"]} ${row["Specific Epithet"]} from ${row["Trap Region"]} with count: ${row["Count"]}</p>`;
+            });
+        }
     </script>
 </body>
 
