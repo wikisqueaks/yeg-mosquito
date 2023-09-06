@@ -6,6 +6,8 @@
     <title>Mosquito Data App</title>
     <!-- Add the PapaParse CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pandas-js@0.3.0/lib/pandas.js"></script>
+
 </head>
 <body>
 
@@ -22,12 +24,17 @@
             header: true,
             complete: function(results) {
                 let dates = [...new Set(results.data.map(row => row["Trap Date"]))];
-                let datePicker = document.getElementById("datePicker");
+    
+                dates.sort((a, b) => {
+                    return new Date(a) - new Date(b);
+                });
+    
+                // Populate the dropdown with sorted dates
                 dates.forEach(date => {
                     let option = document.createElement("option");
-                    option.value = date;
-                    option.text = date;
-                    datePicker.appendChild(option);
+                        option.value = date;
+                        option.textContent = date;
+                         datePicker.appendChild(option);
                 });
             }
         });
@@ -35,7 +42,7 @@
 
     function fetchData() {
         let selectedDate = document.getElementById("datePicker").value;
-        Papa.parse('path_to_your_CSV_file.csv', {
+        Papa.parse('Mosquito_Trap_Data.csv', {
             download: true,
             header: true,
             complete: function(results) {
