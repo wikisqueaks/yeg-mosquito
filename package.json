@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@tidyjs/tidy": "^2.5.2"
+    "@tidyjs/tidy": "^2.5.2",
+    "bootstrap": "^5.3.1"
   }
 }
